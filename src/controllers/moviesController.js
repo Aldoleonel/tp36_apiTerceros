@@ -4,7 +4,7 @@ const sequelize = db.sequelize;
 const { Op } = require("sequelize");
 const moment = require('moment');
 const fetch = require('node-fetch');
-
+const axios = require('axios')
 
 //Aqui tienen otra forma de llamar a cada uno de los modelos
 const Movies = db.Movie;
@@ -56,19 +56,34 @@ const moviesController = {
             });
     },
     
-    buscar: (req, res) => {
-        const title = req.query.titulo;
-        fetch(`${API}&t=${title}`)
-        .then(data => {
-            return data.json()
-        }).then(movie => {
-            console.log(movie);
-            return res.render('moviesDetailOmdb',{
-                movie
-            })
-        })
-        .catch(error => console.log(error))
-    },
+    buscar : (req,res) => {
+        const keyword = req.query.titulo
+    
+        db.Movie.findAll({
+          where: {
+              title: {
+                  [Op.substring]: keyword
+              }
+          }
+      }).then(movies => {
+          if (!movies.length) {
+              return axios.get(`${API}&t=${keyword}`)
+                  .then(movieApi => {
+                      const movie = movieApi.data;
+                      return res.render('moviesDetailOmdb', {
+                          movie
+                      });
+    
+            }).catch(error => console.log(error))
+    }
+          
+          return res.render('moviesList',{
+            movies 
+            
+            
+          })
+        }).catch(error => console.log(error))
+      },
     //Aqui dispongo las rutas para trabajar con el CRUD
     add: function (req, res) {
         let promGenres = Genres.findAll();
